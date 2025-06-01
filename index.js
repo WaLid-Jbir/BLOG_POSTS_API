@@ -20,5 +20,5 @@ app.use(cookieParser());
 // Server listening
 app.listen(process.env.PORT, async () => {
     await connectDB();
-    console.log(`Server is running on http://localhost:${PORT}`);
+    console.log(`✅ Server is running on http://localhost:${PORT}`);
 });
