@@ -4,7 +4,9 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import helmet from 'helmet';
 dotenv.config();
+
 import { connectDB } from './config/db.js';
+import authRouter from './routes/auth.route.js';
 
 const PORT = process.env.PORT || 3000;
 
@@ -16,6 +18,9 @@ app.use(helmet());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
+
+// Routes
+app.use('/api/auth', authRouter);
 
 // Server listening
 app.listen(process.env.PORT, async () => {
