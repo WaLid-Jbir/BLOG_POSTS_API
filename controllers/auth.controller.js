@@ -108,3 +108,11 @@ export const login = async (req, res) => {
         });
     }
 }
+
+// Logout
+export const logout = async (req, res) => {
+    res.clearCookie("Authorization").status(200).json({
+        success: true,
+        message: "Logged out successfully!",
+    });
+}
