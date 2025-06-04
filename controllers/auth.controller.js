@@ -1,7 +1,8 @@
+import jwt from "jsonwebtoken";
 import User from "../models/user.model.js";
 import { registerSchema, loginSchema } from "../middlewares/validator.js";
-import { hashPassword, comparePassword } from "../utils/hashing.js";
-import jwt from "jsonwebtoken";
+import { hashPassword, comparePassword, hmacProcess } from "../utils/hashing.js";
+import transporter from "../config/mailer.js";
 
 export const register = async (req, res) => {
     const { email, password } = req.body;
@@ -115,4 +116,67 @@ export const logout = async (req, res) => {
         success: true,
         message: "Logged out successfully!",
     });
+}
+
+// Send verification code on email
+export const sendVerificationCode = async (req, res) => {
+    const { email } = req.body;
+    try {
+        // check if user exists
+        const existingUser = await User.findOne({ email });
+        if(!existingUser){
+            return res.status(404).json({
+                success: false,
+                message: "User does not exist!",
+            });
+        }
+
+        // check if user is already verified
+        if(existingUser.verified){
+            return res.status(400).json({
+                success: false,
+                message: "Your account is already verified!",
+            });
+        }
+
+        // generate a random 6 digit code
+        const verificationCode = Math.floor(Math.random() * 1000000).toString();
+
+        const info = await transporter.sendMail({
+            // from: process.env.EMAIL_USER,
+            to: email,
+            subject: "Verification Code",
+            html: ` 
+                <h1>Verification Code</h1>
+                <p>Your verification code is ${verificationCode}</p>
+            `,
+        });
+
+        if(info.accepted[0] === existingUser.email){
+            const hashedCodeValue = hmacProcess(verificationCode, process.env.HMAC_SECRET);
+
+            // update the user with the verification code
+            existingUser.verificationCode = hashedCodeValue;
+            existingUser.verificationCodeValidation = Date.now() + 10 * 60 * 1000;
+            await existingUser.save();
+
+            return res.status(200).json({
+                success: true,
+                message: "Verification code sent successfully!",
+            });
+        }
+
+        res.status(400).json({
+            success: false,
+            message: "Verification code could not be sent!",
+        });
+
+    } catch (error) {
+        console.error("❌ Error on Sending Verification Code:", error);
+        res.status(500).json({
+            success: false,
+            message: "Internal server error",
+        });
+        
+    }
 }
