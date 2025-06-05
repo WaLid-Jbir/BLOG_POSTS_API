@@ -1,6 +1,6 @@
 import jwt from "jsonwebtoken";
 import User from "../models/user.model.js";
-import { registerSchema, loginSchema } from "../middlewares/validator.js";
+import { registerSchema, loginSchema, acceptCodeSchema } from "../middlewares/validator.js";
 import { hashPassword, comparePassword, hmacProcess } from "../utils/hashing.js";
 import transporter from "../config/mailer.js";
 
@@ -178,5 +178,78 @@ export const sendVerificationCode = async (req, res) => {
             message: "Internal server error",
         });
         
+    }
+}
+
+export const verifyVerificationCode = async (req, res) => {
+    const { email, providedCode } = req.body;
+
+    try {
+        // validation
+        const {error, value} = acceptCodeSchema.validate({ email, providedCode });
+        if (error) {
+            return res.status(401).json({
+                success: false,
+                message: error.details[0].message
+            });
+        }
+
+        const codeValue = providedCode.toString();
+
+        const existingUser = await User.findOne({ email }).select('+verificationCode +verificationCodeValidation');
+        if(!existingUser){
+            return res.status(404).json({
+                success: false,
+                message: "User does not exist!",
+            });
+        }
+
+        if(existingUser.verified){
+            return res.status(400).json({
+                success: false,
+                message: "Your account is already verified!",
+            });
+        }
+
+        if(!existingUser.verificationCode || !existingUser.verificationCodeValidation){
+             return res.status(400).json({
+                success: false,
+                message: "Something went wrong with the verification code!",
+            });
+        }
+
+        if(Date.now() - existingUser.verificationCodeValidation > 5 * 60 * 1000){
+            return res.status(400).json({
+                success: false,
+                message: "Verification code has expired!",
+            });
+        }
+
+        const hashedCodeValue = hmacProcess(codeValue, process.env.HMAC_SECRET);
+
+        if(existingUser.verificationCode === hashedCodeValue){
+            // update the user with the verification code
+            existingUser.verified = true;
+            existingUser.verificationCode = undefined;
+            existingUser.verificationCodeValidation = undefined;
+            await existingUser.save();
+
+            return res.status(200).json({
+                success: true,
+                message: "Your account has been verified successfully!",
+            });
+        }
+
+        return res.status(400).json({
+            success: false,
+            message: "Invalid verification code!",
+        });
+
+    } catch (error) {
+        console.error("❌ Error on Verifying Verification Code:", error);
+        res.status(500).json({
+            success: false,
+            message: "Internal server error",
+        });
     }
 }

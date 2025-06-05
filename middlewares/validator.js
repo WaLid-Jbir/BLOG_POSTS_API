@@ -25,3 +25,10 @@ export const loginSchema = Joi.object({
                 'Password must contain at least 8 characters, one uppercase letter, one lowercase letter, and one number',
         }),
 });
+
+export const acceptCodeSchema = Joi.object({
+    email: Joi.string().min(6).max(60).required().email({
+        tlds: { allow: ['com', 'net'] },
+    }),
+    providedCode: Joi.number().required(),
+});
