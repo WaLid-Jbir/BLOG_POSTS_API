@@ -1,5 +1,13 @@
 import express from 'express';
-import { register, login, logout, sendVerificationCode, verifyVerificationCode, changePassword } from '../controllers/auth.controller.js';
+import { 
+    register, 
+    login, 
+    logout, 
+    sendVerificationCode, 
+    verifyVerificationCode, 
+    changePassword, 
+    sendForgotPasswordCode 
+} from '../controllers/auth.controller.js';
 import { identifier } from '../middlewares/identification.js';
 
 const router = express.Router();
@@ -12,5 +20,7 @@ router.patch('/send-verification-code', identifier, sendVerificationCode);
 router.patch('/verify-verification-code', identifier, verifyVerificationCode);
 
 router.patch('/change-password', identifier, changePassword);
+
+router.patch('/forgot-password', sendForgotPasswordCode);
 
 export default router;
