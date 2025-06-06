@@ -1,6 +1,6 @@
 import jwt from "jsonwebtoken";
 import User from "../models/user.model.js";
-import { registerSchema, loginSchema, acceptCodeSchema } from "../middlewares/validator.js";
+import { registerSchema, loginSchema, acceptCodeSchema, changePasswordSchema } from "../middlewares/validator.js";
 import { hashPassword, comparePassword, hmacProcess } from "../utils/hashing.js";
 import transporter from "../config/mailer.js";
 
@@ -251,5 +251,63 @@ export const verifyVerificationCode = async (req, res) => {
             success: false,
             message: "Internal server error",
         });
+    }
+}
+
+// change password
+export const changePassword = async (req, res) => {
+    const { userId, verified } = req.user;
+    const { oldPassword, newPassword } = req.body;
+    try {
+        // validation
+        const {error, value} = changePasswordSchema.validate({ oldPassword, newPassword });
+        if (error) {
+            return res.status(401).json({
+                success: false,
+                message: error.details[0].message
+            });
+        }
+
+        if(!verified){
+            return res.status(401).json({
+                success: false,
+                message: "Your account is not verified!",
+            });
+        }
+
+        const existingUser = await User.findById(userId).select('+password');
+
+        if(!existingUser){
+            return res.status(404).json({
+                success: false,
+                message: "User does not exist!",
+            });
+        }
+
+        const result = await comparePassword(oldPassword, existingUser.password);
+
+        if(!result){
+            return res.status(400).json({
+                success: false,
+                message: "Invalid credeentials!",
+            });
+        }
+
+        const hashedPassword = await hashPassword(newPassword, 12);
+        existingUser.password = hashedPassword;
+        await existingUser.save();
+
+        return res.status(200).json({
+            success: true,
+            message: "Your password has been changed successfully!",
+        });
+
+    } catch (error) {
+        console.error("❌ Error on Changing Password:", error);
+        res.status(500).json({
+            success: false,
+            message: "Internal server error",
+        });
+        
     }
 }
