@@ -144,7 +144,7 @@ export const sendVerificationCode = async (req, res) => {
 
         const info = await transporter.sendMail({
             // from: process.env.EMAIL_USER,
-            to: email,
+            to: existingUser.email,
             subject: "Verification Code",
             html: ` 
                 <h1>Verification Code</h1>
@@ -304,6 +304,61 @@ export const changePassword = async (req, res) => {
 
     } catch (error) {
         console.error("❌ Error on Changing Password:", error);
+        res.status(500).json({
+            success: false,
+            message: "Internal server error",
+        });
+        
+    }
+}
+
+// forgot password
+export const sendForgotPasswordCode = async (req, res) => {
+    const { email } = req.body;
+    try {
+        // check if user exists
+        const existingUser = await User.findOne({ email });
+        if(!existingUser){
+            return res.status(404).json({
+                success: false,
+                message: "User does not exist!",
+            });
+        }
+
+        // generate a random 6 digit code
+        const verificationCode = Math.floor(Math.random() * 1000000).toString();
+
+        const info = await transporter.sendMail({
+            // from: process.env.EMAIL_USER,
+            to: existingUser.email,
+            subject: "Forgot Password Verification Code",
+            html: ` 
+                <h1>Forgot password verification code</h1>
+                <p>Your forgot password verification code is ${verificationCode}</p>
+            `,
+        });
+
+        if(info.accepted[0] === existingUser.email){
+            const hashedCodeValue = hmacProcess(verificationCode, process.env.HMAC_SECRET);
+
+            // update the user with the verification code
+            existingUser.forgotPasswordCode = hashedCodeValue;
+            existingUser.forgotPasswordCodeValidation = Date.now() + 10 * 60 * 1000;
+            await existingUser.save();
+
+            return res.status(200).json({
+                success: true,
+                message: "Forgot password verification code sent successfully!",
+            });
+        }
+
+        res.status(400).json({
+            success: false,
+            message: "Forgot password verification code could not be sent!",
+        });
+
+    } catch (error) {
+        console.error("❌ Error on Sending Forgot Password Verification Code:", error);
         res.status(500).json({
             success: false,
             message: "Internal server error",
