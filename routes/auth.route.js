@@ -6,7 +6,8 @@ import {
     sendVerificationCode, 
     verifyVerificationCode, 
     changePassword, 
-    sendForgotPasswordCode 
+    sendForgotPasswordCode, 
+    verifyForgotPasswordCode
 } from '../controllers/auth.controller.js';
 import { identifier } from '../middlewares/identification.js';
 
@@ -22,5 +23,6 @@ router.patch('/verify-verification-code', identifier, verifyVerificationCode);
 router.patch('/change-password', identifier, changePassword);
 
 router.patch('/forgot-password', sendForgotPasswordCode);
+router.patch('/verify-forgot-password-code', verifyForgotPasswordCode);
 
 export default router;
