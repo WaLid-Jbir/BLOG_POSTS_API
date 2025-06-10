@@ -7,6 +7,7 @@ dotenv.config();
 
 import { connectDB } from './config/db.js';
 import authRouter from './routes/auth.route.js';
+import postsRouter from './routes/posts.route.js';
 
 const PORT = process.env.PORT || 3000;
 
@@ -21,6 +22,7 @@ app.use(cookieParser());
 
 // Routes
 app.use('/api/auth', authRouter);
+app.use('/api/posts', postsRouter);
 
 // Server listening
 app.listen(process.env.PORT, async () => {
