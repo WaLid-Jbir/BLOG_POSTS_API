@@ -1,3 +1,4 @@
+import { createPostSchema } from "../middlewares/validator.js";
 import Post from "../models/post.model.js";
 
 export const getAllPosts = async (req, res) => {
@@ -30,3 +31,33 @@ export const getAllPosts = async (req, res) => {
         });
     }
 };
+
+export const createPost = async (req, res) => {
+    const { title, content } = req.body;
+    const author = req.user.userId;
+    try {
+        // Validate the request body
+        const {error, value} = createPostSchema.validate({ title, content, author });
+        if (error) {
+            return res.status(400).json({
+                success: false,
+                message: error.details[0].message,
+            });
+        }
+        // Create a new post
+        const result = await Post.create({ title, content, author });
+
+        res.status(201).json({
+            success: true,
+            message: "Post created successfully",
+            data: result,
+        });
+
+    } catch (error) {
+        console.error("❌ Error on Creating Post:", error);
+        res.status(500).json({
+            success: false,
+            message: "Internal server error",
+        });
+    }
+}
