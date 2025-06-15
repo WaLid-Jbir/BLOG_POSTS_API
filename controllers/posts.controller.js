@@ -140,7 +140,46 @@ export const updatePost = async (req, res) => {
         });
 
     } catch (error) {
-        console.error("❌ Error on Creating Post:", error);
+        console.error("❌ Error on Updating Post:", error);
+        res.status(500).json({
+            success: false,
+            message: "Internal server error",
+        });
+    }
+}
+
+// Delete post
+export const deletePost = async (req, res) => {
+    const { _id } = req.query;
+    const author = req.user.userId;
+    try {
+        // existing post
+        const post = await Post.findOne({ _id });
+
+        if (!post) {
+            return res.status(404).json({
+                success: false,
+                message: "Post not found",
+            });
+        }
+
+        if (post.author.toString() !== author.toString()) {
+            return res.status(403).json({
+                success: false,
+                message: "You are not authorized to delete this post",
+            });
+        }
+
+        // Delete the post
+        await post.deleteOne({ _id });
+
+        res.status(201).json({
+            success: true,
+            message: "Post deleted successfully",
+        });
+
+    } catch (error) {
+        console.error("❌ Error on Deleting Post:", error);
         res.status(500).json({
             success: false,
             message: "Internal server error",
